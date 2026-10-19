@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx electron-vite *)",
+      "Bash(mkdir -p resources)",
+      "Bash(cp assets/logo.png resources/logo.png)",
+      "Bash(node -e \"const b=require\\('fs'\\).readFileSync\\('resources/logo.png'\\); console.log\\('dimensões:', b.readUInt32BE\\(16\\)+'x'+b.readUInt32BE\\(20\\), '· tamanho:', \\(b.length/1024\\).toFixed\\(0\\)+'KB'\\)\")",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $src = [System.Drawing.Image]::FromFile\\(\"$PWD\\\\resources\\\\logo.png\"\\); $size = [Math]::Max\\($src.Width, $src.Height\\); $bmp = New-Object System.Drawing.Bitmap\\($size, $size\\); $g = [System.Drawing.Graphics]::FromImage\\($bmp\\); $g.Clear\\([System.Drawing.Color]::Transparent\\); $x = [int]\\(\\($size - $src.Width\\)/2\\); $y = [int]\\(\\($size - $src.Height\\)/2\\); $g.DrawImage\\($src, $x, $y, $src.Width, $src.Height\\); $bmp.Save\\(\"$PWD\\\\resources\\\\logo-square.png\", [System.Drawing.Imaging.ImageFormat]::Png\\); $g.Dispose\\(\\); $bmp.Dispose\\(\\); $src.Dispose\\(\\); Move-Item -Force \"$PWD\\\\resources\\\\logo-square.png\" \"$PWD\\\\resources\\\\logo.png\"; Write-Output \"logo quadrada: $size x $size\")",
+      "Bash(npm install *)",
+      "Bash(npx electron-builder *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

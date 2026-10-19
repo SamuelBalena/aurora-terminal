@@ -1,0 +1,389 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/*
+ * GLASSMORPHISM REAL: a janela é transparente (transparent: true) e o
+ * Windows 11 aplica o acrylic do DWM (backgroundMaterial: 'acrylic' no
+ * main). Então NADA aqui pinta um fundo opaco — as cores são tintas
+ * translúcidas (RGBA) definidas por tema em themes.ts, e a área de
+ * trabalho borrada do sistema aparece por trás de tudo.
+ */
+:root {
+  /* fallback (Aurora Dark translúcido) para o primeiro frame */
+  --bg: rgba(13, 17, 23, 0.75);
+  --fg: #c9d1d9;
+  --chrome-bg: rgba(22, 27, 34, 0.55);
+  --chrome-hover: rgba(255, 255, 255, 0.08);
+  --chrome-border: rgba(48, 54, 61, 0.9);
+  --tab-fg: #8b949e;
+  --brand-from: #7ee0c0;
+  --brand-to: #a78bfa;
+  --danger: #da3633;
+  --neon: rgba(126, 224, 192, 0.55); /* halo neon das letras (fallback 1º frame) */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background: transparent; /* o vidro é do sistema, não da página */
+}
+
+body {
+  color: var(--fg);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* O painel de vidro: UMA única tinta translúcida (veio em themes.ts), POR
+   CIMA da camada .glass-bg (screenshot da tela borrado). O conteúdo fica
+   acima das duas. O Windows 11 arredonda os cantos da janela nativamente. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── Vidro determinístico: screenshot da tela, blur do Chromium ─── */
+.glass-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* "Vidro fake" garantido (fallback): aurora interna mesmo se a captura da
+     tela falhar — gradiente sempre disponível, zero dependência externa */
+  background:
+    radial-gradient(1200px 520px at 12% 0%, rgba(126, 224, 192, 0.16), transparent 60%),
+    radial-gradient(1000px 480px at 88% 100%, rgba(167, 139, 250, 0.18), transparent 55%),
+    linear-gradient(160deg, #0b1216 0%, #0d1117 55%, #101418 100%);
+  /* blur reduzido (era 28px): o wallpaper aparece mais nítido,
+     "vidro jateado" em vez de "vidro fosso" */
+  filter: blur(14px) saturate(150%);
+  transform: scale(1.08);
+}
+
+.glass-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  /* v21: camada própria — o translate do drag vira trabalho só do
+     compositor, sem re-rasterizar o blur da camada-mãe a cada pixel */
+  will-change: transform;
+}
+
+/* conteúdo acima do vidro — e a barra ACIMA do terminal: com z igual, o
+   dropdown do seletor de temas ficava escondido atrás do xterm (bug do ◐) */
+.tabbar {
+  position: relative;
+  z-index: 2;
+}
+
+.panes {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Barra de abas — também é a área de arraste da janela frameless ─── */
+.tabbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 40px;
+  padding: 0 8px 0 10px;
+  /* v15: TRANSPARENTE — o .shell já aplica a tinta --bg na janela TODA;
+     pintar de novo aqui empilhava 2× tinta (≈80% vs 55% do corpo): era o
+     tom "diferente" da barra mesmo com valores idênticos. Uma tinta só. */
+  background: transparent;
+  -webkit-app-region: drag; /* a barra inteira arrasta a janela… */
+  user-select: none;
+}
+
+/* …mas as abas e os botões não são área de arraste */
+.tab,
+.tab-new,
+.theme-picker,
+.window-close {
+  -webkit-app-region: no-drag;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px 0 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: var(--tab-fg);
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.tab:hover {
+  color: var(--fg);
+  background: var(--chrome-hover);
+}
+
+/* aba ativa: transparente igualmente (o filete marca quem está ativa);
+     qualquer background aqui re-empilharia tinta sobre a --bg do .shell */
+.tab--active {
+  color: var(--fg);
+  background: transparent;
+  border-color: var(--chrome-border);
+}
+
+.tab-title {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.tab-close {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: default;
+  opacity: 0;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease;
+}
+
+.tab:hover .tab-close,
+.tab--active .tab-close {
+  opacity: 0.65;
+}
+
+.tab-close:hover {
+  background: var(--danger);
+  color: #fff;
+  opacity: 1;
+}
+
+.tab-new {
+  width: 28px;
+  height: 28px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tab-fg);
+  font-size: 17px;
+  font-weight: 300;
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.tab-new:hover {
+  color: var(--fg);
+  background: var(--chrome-hover);
+}
+
+/* o vão à direita dos botões continua arrastando a janela */
+.tabbar-drag {
+  flex: 1;
+  height: 100%;
+}
+
+/* ─── Seletor de tema (botão ◐ no canto direito da barra) ─── */
+.theme-picker {
+  position: relative;
+}
+
+.theme-btn {
+  width: 28px;
+  height: 28px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tab-fg);
+  font-size: 14px;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.theme-btn:hover {
+  color: var(--fg);
+  background: var(--chrome-hover);
+}
+
+/* O menu sobre o terminal: vidro DENTRO da janela — aqui o backdrop-filter
+   funciona de verdade (o conteúdo atrás é da própria página) */
+.picker {
+  position: absolute;
+  top: 32px;
+  right: 2px;
+  z-index: 10;
+  min-width: 210px;
+  padding: 4px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: default;
+  /* texto mais escuro quando o menu abre sobre o tema branco (que clareia o blur) */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.picker-item:hover {
+  background: var(--chrome-hover);
+}
+
+.picker-dot {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.picker-check {
+  margin-left: auto;
+  color: var(--brand-to);
+  font-size: 12px;
+}
+
+.picker-hint {
+  margin-top: 4px;
+  padding: 6px 10px 7px;
+  border-top: 1px solid var(--chrome-border);
+  color: var(--tab-fg);
+  font-size: 10.5px;
+}
+
+/* ─── Botão fechar janela (frameless precisa dele) ─── */
+.window-close {
+  width: 28px;
+  height: 28px;
+  margin: 0 2px 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tab-fg);
+  font-size: 13px;
+  line-height: 1;
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.window-close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ═══ O FIX DO VIDRO (v4) — descoberto lendo o CSS do próprio xterm ════════
+   O .xterm-viewport (camada de scroll, cobre TODA a área do terminal) tem
+   background-color: #000 HARDCODED no css default do xterm (workaround
+   deles p/ scrollbar no macOS — node_modules/@xterm/xterm/css/xterm.css).
+   Ou seja: allowTransparency + background #00000000 FUNCIONAVAM, mas o
+   viewport pintava preto por cima. Este override (combinado com
+   allowTransparency: true no Terminal.tsx e #00000000 no themes.ts) é o
+   fix que a comunidade xterm.js documenta para terminais de vidro. */
+.pane .xterm .xterm-viewport {
+  background-color: transparent !important;
+}
+
+/* Scrollbar FORA (a pedido): esconde a nativa do viewport E o slider custom
+   do xterm — o scroll continua funcionando pela rodinha do mouse. */
+.pane .xterm .xterm-viewport,
+.pane .xterm .xterm-scrollable-element {
+  scrollbar-width: none;
+}
+
+.pane .xterm .xterm-viewport::-webkit-scrollbar,
+.pane .xterm .xterm-scrollable-element::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.pane .xterm .xterm-scrollable-element > .scrollbar {
+  display: none !important;
+}
+
+/* ─── NEON (v24): halo ao redor das letras do terminal ───
+   Os glifos são pixels num canvas com fundo TRANSPARENTE (é o
+   allowTransparency que faz o vidro existir). Um drop-shadow sobre o
+   canvas pega o canal ALFA e cria o halo só em volta do que foi desenhado
+   — letras, cursor piscante e seleção. Funciona com o renderer WebGL E
+   com o fallback DOM, e a cor vem do tema (--neon em themes.ts). Dois
+   drops empilhados = halo com corpo de neon de verdade. O App carimba
+   data-neon='off' no <html> quando o usuário desliga (Ctrl+Alt+N). */
+.pane .xterm-screen {
+  filter: drop-shadow(0 0 5px var(--neon)) drop-shadow(0 0 14px var(--neon));
+}
+
+html[data-neon='off'] .pane .xterm-screen {
+  filter: none;
+}
+
+/* ─── Terminais: um pane por aba, só a ativa visível ─── */
+.panes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.pane {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  position: relative; /* ancora o ::after do Aurora Gradient */
+}
+
+/* padding nas laterais: texto respira longe da borda da janela.
+   O FitAddon mede o CONTENT-box do host, então o padding não corta
+   colunas — o grid se ajusta ao espaço útil de verdade. */
+/* padding SIMÉTRICO em todas as laterais (esq/dir/baixo): texto respira
+   longe das bordas da janela — nenhuma coluna de conteúdo colada.
+   O FitAddon mede o CONTENT-box do host, então o padding não corta
+   colunas — o grid se ajusta ao espaço útil de verdade. */
+.pane--active {
+  display: block;
+  padding: 8px 12px 12px;
+}

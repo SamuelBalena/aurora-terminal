@@ -1,0 +1,72 @@
+{
+  "name": "aurora-terminal",
+  "version": "1.0.0",
+  "description": "Terminal moderno com Electron + React + Vite",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
+    "electron": "^37.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^3.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "^5.8.2",
+    "vite": "^6.3.0"
+  },
+  "dependencies": {
+    "@xterm/addon-webgl": "^0.19.0",
+    "koffi": "^2.16.3",
+    "node-pty": "^1.1.0"
+  },
+  "build": {
+    "appId": "app.aurora.terminal",
+    "productName": "Aurora Terminal",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/build/**"
+    ],
+    "win": {
+      "icon": "resources/logo.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "AuroraTerminal-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
